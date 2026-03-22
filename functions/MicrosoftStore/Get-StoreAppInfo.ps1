@@ -449,14 +449,25 @@
             }
             
             foreach ($oPackage in $filteredUrls) {
-                $oInstalledPackage = $Global:InstalledPrograms | Where-Object { ($_.type -eq "appx") -and ($_.PackageName -eq $oPackage.PackageName) -and ($_.Architecture -eq $oPackage.Architecture) }
-                if ($null -eq $oInstalledPackage) {
+                $aInstalledPackages = @($Global:InstalledPrograms | Where-Object { ($_.type -eq "appx") -and ($_.PackageName -eq $oPackage.PackageName) -and ($_.Architecture -eq $oPackage.Architecture) })
+                if ($aInstalledPackages.Count -eq 0) {
                     $oPackage | Add-Member -NotePropertyName "Installed" -NotePropertyValue $false
                 } else {
-                    if ([version]$oInstalledPackage.Version -lt [version]$oPackage.Version) {
-                        $oPackage | Add-Member -NotePropertyName "Installed" -NotePropertyValue $false
+                    # If multiple installed versions, take the highest
+                    if ($aInstalledPackages.Count -gt 1) {
+                        $oInstalledPackage = $aInstalledPackages | Sort-Object { try { [version]$_.Version } catch { [version]"0.0" } } -Descending | Select-Object -First 1
                     } else {
-                        $oPackage | Add-Member -NotePropertyName "Installed" -NotePropertyValue $true
+                        $oInstalledPackage = $aInstalledPackages[0]
+                    }
+                    try {
+                        if ([version]$oInstalledPackage.Version -lt [version]$oPackage.Version) {
+                            $oPackage | Add-Member -NotePropertyName "Installed" -NotePropertyValue $false
+                        } else {
+                            $oPackage | Add-Member -NotePropertyName "Installed" -NotePropertyValue $true
+                        }
+                    } catch {
+                        Write-Verbose "Version comparison failed for $($oPackage.PackageName): $_"
+                        $oPackage | Add-Member -NotePropertyName "Installed" -NotePropertyValue $false
                     }
                 }
             }

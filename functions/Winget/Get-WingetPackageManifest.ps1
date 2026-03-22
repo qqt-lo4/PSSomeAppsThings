@@ -49,9 +49,6 @@ function Get-WingetPackageManifest {
     )
     
     try {
-        # Ensure powershell-yaml is installed and imported
-        Import-PSModule -Name "powershell-yaml"
-        
         # Get winget source URL
         $wingetSource = Get-WingetSources | Where-Object { $_.Name -eq "winget" }
         if (-not $wingetSource) {
@@ -89,7 +86,7 @@ function Get-WingetPackageManifest {
         
         $buffer = (Invoke-WebRequest -Uri $versionDataUrl -UseBasicParsing).Content
         $decompressedYaml = ConvertFrom-MSZIPYaml -Buffer $buffer
-        
+
         # Parse YAML to get version info
         $versionData = ConvertFrom-Yaml $decompressedYaml
         

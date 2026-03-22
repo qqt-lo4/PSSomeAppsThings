@@ -153,7 +153,12 @@ function Get-UnifiedStoreAppInfo {
                     } else {
                         Write-Warning "No MSIX/APPX packages found"
                     }
-                    $sPackageVersion = ($downloadInfo.Packages | Where-Object { $_.IsMainPackage }).Version
+                    $aMainPackages = @($downloadInfo.Packages | Where-Object { $_.IsMainPackage })
+                    if ($aMainPackages.Count -gt 1) {
+                        $sPackageVersion = ($aMainPackages | Sort-Object { try { [version]$_.Version } catch { [version]"0.0" } } -Descending | Select-Object -First 1).Version
+                    } elseif ($aMainPackages.Count -eq 1) {
+                        $sPackageVersion = $aMainPackages[0].Version
+                    }
                 }
                 catch {
                     Write-Warning "Failed to retrieve MSIX/APPX package info: $($_.Exception.Message)"

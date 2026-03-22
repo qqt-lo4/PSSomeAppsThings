@@ -74,11 +74,17 @@ function Get-WingetPackageInstaller {
                 $bNullsoftInList = ("nullsoft" -in $aInstallationType)
                 $bWixInList = ("wix" -in $aInstallationType)
                 $bMSIInList = ("msi" -in $aInstallationType)
+                $bMsixInList = ("msix" -in $aInstallationType) -or ("appx" -in $aInstallationType)
+                $bZipInList = ("zip" -in $aInstallationType)
                 $bNonMSI = $bExeInList -or $bInnoInList -or $bNullsoftInList
                 $bMSI = $bWixInList -or $bMSIInList
-                if ($bNonMSI -and $bMSI) {
+                if (($bNonMSI -or $bMsixInList) -and $bMSI) {
+                    # Prefer wix/msi over exe/inno/nullsoft/msix/appx
                     $sTypeToFind = if ($bWixInList) { "wix" } else { "msi" }
                     $aInstallers = $aInstallers | Where-Object { $_.InstallerType -eq "$sTypeToFind" }
+                } elseif ($bZipInList -and ($bNonMSI -or $bInnoInList)) {
+                    # Prefer installer (exe/inno/nullsoft) over zip (portable)
+                    $aInstallers = $aInstallers | Where-Object { $_.InstallerType -ne "zip" }
                 }
             }
             return $aInstallers
